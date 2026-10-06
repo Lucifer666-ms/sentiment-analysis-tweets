@@ -3,7 +3,7 @@
 🚀 **Live Demo:**  https://sentiment-analysis-tweets-b3ht.onrender.com
 
 
-# sentiment-analysis-tweets
+# Sentiment-Analysis-Tweets
 ML project 
 # Sentiment Analysis of Tweets
 
