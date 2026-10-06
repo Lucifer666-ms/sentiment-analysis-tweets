@@ -1,117 +1,900 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Sentiment Analyzer</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08080a">
+  <meta name="description" content="SENTI.AI turns everyday words into meaningful sentiment — positive, negative, or neutral — with a confidence score.">
+  <title>SENTI.AI — Understand what people feel</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Poppins', sans-serif;
-            background: #0f172a; /* dark blue */
-            color: #e2e8f0; /* light text */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+  <style>
+    :root {
+      --bg: #08080a;
+      --bg-2: #0e0e11;
+      --fg: #f3f2ee;
+      --muted: #8b8b94;
+      --dim: #55555d;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-2: rgba(255, 255, 255, 0.14);
+      --pos: #8fe3b0;
+      --neg: #ff7a6b;
+      --neu: #b9c2cf;
+      --accent: var(--fg);
+      --sans: "Inter Tight", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --serif: "Instrument Serif", ui-serif, Georgia, serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --wrap: min(1200px, calc(100vw - 48px));
+    }
 
-        .container {
-            background: #1e293b;
-            padding: 30px;
-            border-radius: 12px;
-            width: 420px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            text-align: center;
-        }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+    ::selection { background: var(--fg); color: var(--bg); }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; }
+    em { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.01em; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .wrap { width: var(--wrap); margin: 0 auto; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 12px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+    }
+    .eyebrow::before { content: ""; width: 18px; height: 1px; background: currentColor; opacity: 0.6; }
 
-        h1 {
-            margin-bottom: 20px;
-            color: #38bdf8;
-        }
+    /* Film grain */
+    body::after {
+      content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 100; opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
 
-        textarea {
-            width: 100%;
-            height: 120px;
-            border-radius: 8px;
-            border: none;
-            padding: 10px;
-            background: #334155;
-            color: white;
-            font-size: 14px;
-            outline: none;
-        }
+    /* ========== NAV ========== */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      transition: padding 0.5s var(--ease), background-color 0.5s var(--ease), border-color 0.5s var(--ease);
+      padding: 22px 0; border-bottom: 1px solid transparent;
+    }
+    .nav.is-compact {
+      padding: 12px 0;
+      background: rgba(8, 8, 10, 0.68);
+      backdrop-filter: saturate(160%) blur(18px);
+      -webkit-backdrop-filter: saturate(160%) blur(18px);
+      border-bottom-color: var(--line);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { font-weight: 600; letter-spacing: 0.14em; font-size: 14px; display: inline-flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 9px; height: 9px; border-radius: 50%; background: conic-gradient(var(--pos), var(--neu), var(--neg), var(--pos)); }
+    .nav-links { display: flex; align-items: center; gap: 4px; list-style: none; margin: 0; padding: 0; }
+    .nav-links a {
+      display: inline-block; padding: 8px 14px; font-size: 13px; color: var(--muted); border-radius: 999px;
+      transition: color 0.3s var(--ease), background-color 0.3s var(--ease);
+    }
+    .nav-links a:hover, .nav-links a:focus-visible { color: var(--fg); background: rgba(255,255,255,0.05); outline: none; }
+    @media (max-width: 640px) {
+      .nav-links li:not(:last-child) { display: none; }
+    }
 
-        textarea::placeholder {
-            color: #94a3b8;
-        }
+    /* ========== HERO ========== */
+    .hero {
+      position: relative; min-height: 100svh; display: flex; align-items: center;
+      padding: 130px 0 80px; overflow: hidden; isolation: isolate;
+    }
+    .hero-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+    .orb {
+      position: absolute; left: 50%; top: 58%; width: min(1100px, 140vw); aspect-ratio: 1;
+      transform: translate(-50%, -50%); border-radius: 50%;
+      background:
+        radial-gradient(closest-side at 35% 45%, rgba(143, 227, 176, 0.16), transparent 70%),
+        radial-gradient(closest-side at 68% 52%, rgba(255, 122, 107, 0.13), transparent 70%),
+        radial-gradient(closest-side at 50% 70%, rgba(185, 194, 207, 0.10), transparent 70%);
+      filter: blur(20px);
+    }
+    .hero-horizon {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+      background: linear-gradient(to bottom, transparent, var(--bg));
+    }
+    .hero-grid {
+      position: absolute; inset: 0; opacity: 0.5;
+      background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 88px 88px;
+      mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, #000 20%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, #000 20%, transparent 75%);
+    }
+    .hero-inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 56px; }
+    .hero-copy { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+    .hero h1 {
+      margin: 0; font-weight: 500; letter-spacing: -0.045em; line-height: 0.95;
+      font-size: clamp(48px, 9.2vw, 132px); text-wrap: balance;
+    }
+    .hero h1 em { font-size: 1.06em; }
+    .hero-sub { margin: 0; max-width: 34ch; color: var(--muted); font-size: clamp(17px, 1.7vw, 21px); line-height: 1.45; text-wrap: balance; }
 
-        button {
-            margin-top: 15px;
-            padding: 10px 20px;
-            background: #38bdf8;
-            border: none;
-            border-radius: 8px;
-            color: black;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+    /* Analyzer */
+    .analyzer-wrap { width: min(760px, 100%); }
+    .analyzer {
+      width: 100%; text-align: left; position: relative;
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.02));
+      border: 1px solid var(--line-2); border-radius: 22px; padding: 8px;
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 40px 120px -40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: border-color 0.4s var(--ease), box-shadow 0.4s var(--ease);
+    }
+    .analyzer:focus-within { border-color: rgba(255,255,255,0.26); box-shadow: 0 40px 120px -40px rgba(0,0,0,0.8), 0 0 0 6px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.08); }
+    .analyzer-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 4px; font-size: 12px; color: var(--muted); }
+    .analyzer-head .live { display: inline-flex; align-items: center; gap: 8px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .analyzer-head .live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 0 4px rgba(143,227,176,0.12); }
+    .analyzer textarea {
+      display: block; width: 100%; min-height: 150px; resize: vertical; border: 0; outline: none; background: transparent;
+      color: var(--fg); font-family: var(--sans); font-size: clamp(18px, 2vw, 22px); line-height: 1.45; letter-spacing: -0.01em;
+      padding: 12px 16px 16px;
+    }
+    .analyzer textarea::placeholder { color: var(--dim); }
+    .analyzer-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding: 10px 10px 10px 16px; border-top: 1px solid var(--line); margin: 0 -8px -8px; padding-inline: 24px 16px; padding-block: 14px;
+    }
+    .meta { display: flex; align-items: center; gap: 18px; font-size: 12.5px; color: var(--dim); }
+    .kbd { display: inline-flex; align-items: center; gap: 4px; }
+    kbd {
+      font-family: var(--sans); font-size: 11px; min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center;
+      border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 6px; color: var(--muted); background: rgba(255,255,255,0.03);
+    }
+    .btn {
+      position: relative; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; border: 0;
+      padding: 13px 20px 13px 22px; border-radius: 999px; font-size: 14.5px; font-weight: 500; letter-spacing: -0.005em;
+      background: var(--fg); color: var(--bg);
+      transition: transform 0.35s var(--ease), background-color 0.35s var(--ease), box-shadow 0.35s var(--ease);
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 30px -10px rgba(243,242,238,0.45); }
+    .btn:active { transform: translateY(0) scale(0.98); }
+    .btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+    .btn .arrow { transition: transform 0.35s var(--ease); }
+    .btn:hover .arrow { transform: translateX(3px); }
+    .btn .spinner { display: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(8,8,10,0.25); border-top-color: var(--bg); animation: spin 0.8s linear infinite; }
+    .btn.is-loading { pointer-events: none; }
+    .btn.is-loading .arrow { display: none; }
+    .btn.is-loading .spinner { display: inline-block; }
+    .btn-ghost { background: transparent; color: var(--fg); border: 1px solid var(--line-2); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.05); box-shadow: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-        button:hover {
-            background: #0ea5e9;
-        }
+    .form-error {
+      display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 16px 6px; font-size: 14px; color: var(--neg);
+    }
+    .form-error::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            background: #020617;
-        }
+    .scroll-cue {
+      display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim);
+    }
+    .scroll-cue span { width: 1px; height: 44px; background: linear-gradient(var(--muted), transparent); transform-origin: top; animation: cue 2.4s var(--ease) infinite; }
+    @keyframes cue { 0% { transform: scaleY(0); opacity: 1; } 60% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
 
-        .positive {
-            color: #22c55e;
-            font-weight: bold;
-        }
+    /* ========== RESULT ========== */
+    .result {
+      --accent: var(--neu);
+      --accent-soft: rgba(185, 194, 207, 0.12);
+      position: relative; padding: 120px 0; scroll-margin-top: 40px; overflow: hidden; isolation: isolate;
+    }
+    .result[data-sentiment="positive"] { --accent: var(--pos); --accent-soft: rgba(143, 227, 176, 0.14); }
+    .result[data-sentiment="negative"] { --accent: var(--neg); --accent-soft: rgba(255, 122, 107, 0.14); }
+    .result::before {
+      content: ""; position: absolute; inset: 10% -10% auto; height: 80%; z-index: -1;
+      background: radial-gradient(ellipse 50% 50% at 50% 50%, var(--accent-soft), transparent 70%);
+    }
+    .result-card {
+      border: 1px solid var(--line-2); border-radius: 28px; overflow: hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012));
+    }
+    .result-top { display: grid; grid-template-columns: 1.4fr 1fr; }
+    .result-main { padding: clamp(28px, 5vw, 56px); display: flex; flex-direction: column; gap: 22px; border-right: 1px solid var(--line); }
+    .result-label { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+    .result-word {
+      margin: 0; font-size: clamp(64px, 11vw, 160px); line-height: 0.88; font-weight: 500; letter-spacing: -0.055em; color: var(--accent);
+    }
+    .result[data-sentiment="positive"] .result-word { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.03em; }
+    .result[data-sentiment="negative"] .result-word { font-weight: 700; letter-spacing: -0.065em; }
+    .result[data-sentiment="neutral"] .result-word { font-weight: 300; letter-spacing: -0.04em; }
+    .result-desc { margin: 0; color: var(--muted); max-width: 40ch; font-size: 17px; }
+    .result-side { padding: clamp(28px, 5vw, 56px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+    .ring { position: relative; width: min(240px, 60vw); aspect-ratio: 1; }
+    .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring-track { fill: none; stroke: var(--line-2); stroke-width: 2; }
+    .ring-ticks { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 6; stroke-dasharray: 0.6 4.74; }
+    .ring-value { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 326.73; stroke-dashoffset: 326.73; filter: drop-shadow(0 0 10px var(--accent-soft)); }
+    .ring-center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+    .ring-num { font-size: clamp(44px, 5vw, 60px); font-weight: 500; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .ring-num small { font-size: 0.42em; color: var(--muted); margin-left: 2px; letter-spacing: 0; }
+    .ring-cap { display: block; margin-top: 6px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+    .conf-bar { width: 100%; max-width: 240px; height: 2px; background: var(--line-2); border-radius: 2px; overflow: hidden; }
+    .conf-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 1.6s var(--ease); }
+    .result-text { padding: clamp(28px, 5vw, 56px); border-top: 1px solid var(--line); display: grid; grid-template-columns: 180px 1fr; gap: 24px; align-items: start; }
+    .result-text blockquote {
+      margin: 0; font-family: var(--serif); font-size: clamp(22px, 2.8vw, 34px); line-height: 1.25; letter-spacing: -0.01em; color: var(--fg);
+      overflow-wrap: anywhere;
+    }
+    .result-text blockquote::before { content: "\201C"; color: var(--accent); }
+    .result-text blockquote::after { content: "\201D"; color: var(--accent); }
+    .result-actions { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+    @media (max-width: 820px) {
+      .result-top { grid-template-columns: 1fr; }
+      .result-main { border-right: 0; border-bottom: 1px solid var(--line); }
+      .result-text { grid-template-columns: 1fr; gap: 12px; }
+    }
 
-        .negative {
-            color: #ef4444;
-            font-weight: bold;
-        }
+    /* ========== STATEMENT ========== */
+    .statement { min-height: 100svh; display: flex; align-items: center; padding: 120px 0; }
+    .statement h2 {
+      margin: 0; font-weight: 500; letter-spacing: -0.045em; line-height: 1; font-size: clamp(44px, 8vw, 116px); text-wrap: balance;
+    }
+    .statement h2 .line { display: block; }
+    .statement h2 .line + .line { color: var(--muted); }
+    .statement .word { display: inline-block; }
+    .statement p { margin: 40px 0 0; max-width: 46ch; color: var(--muted); font-size: clamp(17px, 1.6vw, 20px); }
 
-        .neutral {
-            color: #facc15;
-            font-weight: bold;
-        }
-    </style>
+    /* ========== EMOTIONS ========== */
+    .emotions { position: relative; }
+    .emo-stage { position: relative; --glow: rgba(143, 227, 176, 0.14); }
+    .emo-stage::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 55% 45% at 50% 55%, var(--glow), transparent 70%);
+    }
+    .emo {
+      position: relative; min-height: 100svh; display: flex; align-items: center; padding: 120px 0;
+    }
+    .emo-inner { display: grid; grid-template-columns: 1fr; gap: 36px; width: var(--wrap); margin: 0 auto; }
+    .emo-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+    .emo-word { margin: 0; line-height: 0.82; font-size: clamp(72px, 17.5vw, 270px); }
+    .emo-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: end; }
+    .emo-foot p { margin: 0; color: var(--muted); font-size: clamp(16px, 1.5vw, 19px); max-width: 38ch; }
+    .emo-foot blockquote { margin: 0; justify-self: end; text-align: right; font-family: var(--serif); font-style: italic; font-size: clamp(20px, 2.2vw, 28px); color: var(--fg); max-width: 26ch; }
+    .emo-foot blockquote span { display: block; margin-top: 10px; font-family: var(--sans); font-style: normal; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+    .emo--pos .emo-word { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.035em; color: var(--pos); }
+    .emo--neg .emo-word { font-weight: 700; letter-spacing: -0.075em; color: var(--neg); text-transform: uppercase; }
+    .emo--neu .emo-word { font-weight: 200; letter-spacing: 0.02em; color: var(--neu); text-transform: uppercase; }
+    .emo--neu .emo-word { font-size: clamp(56px, 13vw, 210px); }
+
+    .emo-visual { height: 2px; position: relative; }
+    .emo--pos .emo-visual { background: linear-gradient(90deg, transparent, var(--pos), transparent); opacity: 0.5; }
+    .emo--neg .emo-visual { background: repeating-linear-gradient(90deg, var(--neg) 0 18px, transparent 18px 26px); opacity: 0.5; }
+    .emo--neu .emo-visual { background: var(--neu); opacity: 0.3; }
+    .emo--neu .emo-visual::after { content: ""; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: var(--neu); transform: translate(-50%, -50%); }
+
+    .emo-dots { display: none; }
+
+    /* Pinned mode (enabled by JS when motion is allowed) */
+    .js-motion .emo-stage { height: 100svh; overflow: hidden; }
+    .js-motion .emo { position: absolute; inset: 0; padding: 0; min-height: 0; }
+    .js-motion .emo-dots {
+      display: flex; gap: 8px; position: absolute; left: 50%; bottom: 36px; transform: translateX(-50%); z-index: 2;
+    }
+    .emo-dots i { width: 28px; height: 2px; background: var(--line-2); border-radius: 2px; overflow: hidden; position: relative; }
+    .emo-dots i b { position: absolute; inset: 0; background: var(--fg); transform-origin: left; transform: scaleX(0); }
+    @media (max-width: 720px) {
+      .emo-foot { grid-template-columns: 1fr; gap: 24px; }
+      .emo-foot blockquote { justify-self: start; text-align: left; }
+    }
+
+    /* ========== HOW IT WORKS ========== */
+    .how { position: relative; border-top: 1px solid var(--line); }
+    .how-pin { min-height: 100svh; display: flex; align-items: center; padding: 110px 0 60px; }
+    .how-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(32px, 6vw, 96px); align-items: center; width: var(--wrap); margin: 0 auto; }
+    .how-head h2 { margin: 18px 0 14px; font-weight: 500; font-size: clamp(36px, 4.6vw, 64px); line-height: 1; letter-spacing: -0.04em; }
+    .how-head p { margin: 0 0 36px; color: var(--muted); max-width: 40ch; }
+    .steps { position: relative; list-style: none; margin: 0; padding: 0 0 0 28px; display: flex; flex-direction: column; }
+    .steps::before { content: ""; position: absolute; left: 4px; top: 14px; bottom: 14px; width: 1px; background: var(--line-2); }
+    .steps-progress { position: absolute; left: 4px; top: 14px; bottom: 14px; width: 1px; background: var(--fg); transform-origin: top; transform: scaleY(0); }
+    .step button {
+      position: relative; display: flex; align-items: baseline; gap: 16px; width: 100%; padding: 12px 0; background: none; border: 0; cursor: pointer; text-align: left;
+      color: var(--dim); transition: color 0.4s var(--ease);
+    }
+    .step button::before {
+      content: ""; position: absolute; left: -28px; top: 50%; width: 9px; height: 9px; border-radius: 50%; transform: translateY(-50%);
+      background: var(--bg); border: 1px solid var(--line-2); transition: background-color 0.4s var(--ease), border-color 0.4s var(--ease), box-shadow 0.4s var(--ease);
+    }
+    .step button:hover { color: var(--muted); }
+    .step button:focus-visible { outline: none; color: var(--fg); }
+    .step .num { font-size: 12px; font-variant-numeric: tabular-nums; letter-spacing: 0.1em; }
+    .step .name { font-size: clamp(20px, 2.2vw, 28px); font-weight: 500; letter-spacing: -0.02em; }
+    .step.is-done button { color: var(--muted); }
+    .step.is-done button::before { background: var(--muted); border-color: var(--muted); }
+    .step.is-active button { color: var(--fg); }
+    .step.is-active button::before { background: var(--fg); border-color: var(--fg); box-shadow: 0 0 0 5px rgba(243,242,238,0.1); }
+
+    .stage {
+      position: relative; aspect-ratio: 1 / 0.92; border-radius: 26px; border: 1px solid var(--line-2); overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,255,255,0.05), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    }
+    .stage-bar { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 18px 22px; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--line); z-index: 2; }
+    .panel {
+      position: absolute; inset: 56px 0 0; padding: clamp(22px, 3.4vw, 40px); display: flex; flex-direction: column; justify-content: center; gap: 22px;
+      opacity: 0; transform: translateY(18px) scale(0.985); filter: blur(8px); pointer-events: none;
+      transition: opacity 0.6s var(--ease), transform 0.7s var(--ease), filter 0.6s var(--ease);
+    }
+    .panel.is-active { opacity: 1; transform: none; filter: none; pointer-events: auto; }
+    .panel-label { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+    .panel-big { margin: 0; font-family: var(--serif); font-size: clamp(28px, 3.4vw, 46px); line-height: 1.15; letter-spacing: -0.01em; }
+    .panel-big .caret { display: inline-block; width: 2px; height: 0.9em; background: var(--fg); vertical-align: -0.1em; margin-left: 4px; animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .panel-note { margin: 0; color: var(--muted); font-size: 14.5px; max-width: 46ch; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid var(--line-2); border-radius: 8px; font-size: 13.5px; color: var(--fg); background: rgba(255,255,255,0.025); }
+    .chip i { display: inline-block; height: 4px; border-radius: 2px; background: var(--muted); }
+    .chip--char { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+    .probs { display: flex; flex-direction: column; gap: 16px; }
+    .prob { display: grid; grid-template-columns: 92px 1fr 52px; gap: 14px; align-items: center; font-size: 14px; color: var(--muted); }
+    .prob-track { height: 6px; border-radius: 6px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .prob-fill { height: 100%; border-radius: 6px; width: 0; transition: width 1.2s var(--ease) 0.15s; }
+    .panel.is-active .prob-fill { width: var(--w); }
+    .prob-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--fg); }
+    .matrix { display: grid; grid-template-columns: repeat(16, 1fr); gap: 5px; }
+    .matrix i { aspect-ratio: 1; border-radius: 2px; background: rgba(255,255,255,0.08); }
+    .matrix i.on { background: rgba(243,242,238,0.55); }
+    .verdict { margin: 0; font-family: var(--serif); font-style: italic; font-size: clamp(64px, 9vw, 120px); line-height: 0.9; color: var(--pos); letter-spacing: -0.03em; }
+    .mini-ring { display: flex; align-items: center; gap: 28px; }
+    .mini-ring svg { width: 150px; height: 150px; transform: rotate(-90deg); flex-shrink: 0; }
+    .mini-ring circle { fill: none; stroke-width: 3; }
+    .mini-ring .t { stroke: var(--line-2); }
+    .mini-ring .v { stroke: var(--pos); stroke-linecap: round; stroke-dasharray: 326.73; stroke-dashoffset: 326.73; transition: stroke-dashoffset 1.4s var(--ease) 0.15s; }
+    .panel.is-active .mini-ring .v { stroke-dashoffset: 29.4; }
+    .mini-ring strong { display: block; font-size: 64px; font-weight: 500; letter-spacing: -0.05em; line-height: 1; }
+
+    @media (max-width: 900px) {
+      .how-grid { grid-template-columns: 1fr; gap: 28px; }
+      .how-head p { margin-bottom: 20px; }
+      .steps { flex-direction: row; padding: 0; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+      .steps::before, .steps-progress { display: none; }
+      .step button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; white-space: nowrap; gap: 8px; }
+      .step button::before { display: none; }
+      .step .name { font-size: 14px; }
+      .step.is-active button { border-color: var(--fg); }
+      .stage { aspect-ratio: auto; height: min(440px, 58svh); }
+      .how-head h2 { font-size: clamp(32px, 8vw, 44px); }
+      .js-motion .how-head p { display: none; }
+    }
+
+    /* ========== ABOUT ========== */
+    .about { padding: clamp(100px, 14vw, 180px) 0; border-top: 1px solid var(--line); }
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 96px); align-items: end; }
+    .about h2 { margin: 18px 0 0; font-weight: 500; font-size: clamp(34px, 4.4vw, 60px); line-height: 1.02; letter-spacing: -0.04em; text-wrap: balance; }
+    .about-copy p { margin: 0; color: var(--muted); font-size: clamp(16px, 1.5vw, 19px); max-width: 46ch; }
+    .specs { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: clamp(56px, 8vw, 96px); border-top: 1px solid var(--line); }
+    .spec { padding: 32px 28px 8px 0; display: flex; flex-direction: column; gap: 10px; }
+    .spec + .spec { padding-left: 28px; border-left: 1px solid var(--line); }
+    .spec strong { font-size: clamp(44px, 5vw, 72px); font-weight: 500; letter-spacing: -0.05em; line-height: 1; }
+    .spec strong em { font-size: 1.05em; }
+    .spec span { color: var(--muted); font-size: 14.5px; max-width: 28ch; }
+    @media (max-width: 820px) {
+      .about-grid { grid-template-columns: 1fr; align-items: start; }
+      .specs { grid-template-columns: 1fr; }
+      .spec, .spec + .spec { padding: 24px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+    }
+
+    /* ========== CTA ========== */
+    .cta { position: relative; padding: clamp(120px, 18vw, 220px) 0; text-align: center; overflow: hidden; isolation: isolate; border-top: 1px solid var(--line); }
+    .cta::before {
+      content: ""; position: absolute; left: 50%; bottom: -60%; width: min(1200px, 160vw); aspect-ratio: 1; transform: translateX(-50%); border-radius: 50%; z-index: -1;
+      background: conic-gradient(from 200deg, rgba(143,227,176,0.16), rgba(185,194,207,0.10), rgba(255,122,107,0.14), rgba(143,227,176,0.16));
+      filter: blur(90px); opacity: 0.8;
+    }
+    .cta h2 { margin: 0 auto 40px; max-width: 14ch; font-weight: 500; font-size: clamp(44px, 7.4vw, 110px); line-height: 0.98; letter-spacing: -0.05em; text-wrap: balance; }
+    .btn-lg { padding: 18px 26px 18px 30px; font-size: 16px; }
+
+    .footer { border-top: 1px solid var(--line); padding: 28px 0 36px; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--dim); }
+    .footer a:hover { color: var(--fg); }
+
+    /* Reveal defaults (only hidden when JS motion is active) */
+    .js-motion [data-reveal] { opacity: 0; transform: translateY(28px); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+    }
+  </style>
 </head>
 
 <body>
+  <header class="nav" id="nav">
+    <nav class="wrap nav-inner" aria-label="Primary">
+      <a href="/" class="brand" aria-label="SENTI.AI home"><span class="brand-mark" aria-hidden="true"></span>SENTI.AI</a>
+      <ul class="nav-links">
+        <li><a href="#analyzer">Analyzer</a></li>
+        <li><a href="#how">How it Works</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </nav>
+  </header>
 
-<div class="container">
-    <h1> Sentiment Analyzer</h1>
+  <main>
+    <!-- HERO + ANALYZER -->
+    <section class="hero" id="analyzer" aria-labelledby="hero-title">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-grid"></div>
+        <div class="orb"></div>
+        <div class="hero-horizon"></div>
+      </div>
 
-    <form action="/predict" method="post">
-        <textarea name="tweet" placeholder="Enter your tweet here..." required></textarea>
-        <button type="submit">Analyze</button>
-    </form>
+      <div class="wrap hero-inner">
+        <div class="hero-copy">
+          <span class="eyebrow intro">Sentiment intelligence</span>
+          <h1 id="hero-title" class="intro">Understand what people <em>feel.</em></h1>
+          <p class="hero-sub intro">Turn everyday words into meaningful sentiment with AI.</p>
+        </div>
 
-    {% if result %}
-    <div class="result">
-        <p><b>Tweet:</b> {{ text }}</p>
+        <div class="analyzer-wrap intro">
+        <form class="analyzer" id="analyzer-form" action="/predict" method="POST">
+          <div class="analyzer-head">
+            <span class="live">Model ready</span>
+            <span>Positive · Negative · Neutral</span>
+          </div>
+          <label for="tweet" class="sr-only">Text to analyze</label>
+          <textarea id="tweet" name="tweet" placeholder="Write a review, tweet, or message..." required></textarea>
+          {% if error %}
+          <p class="form-error" role="alert">{{ error }}</p>
+          {% endif %}
+          <div class="analyzer-bar">
+            <div class="meta">
+              <span id="char-count" aria-live="polite">0 characters</span>
+              <span class="kbd" aria-hidden="true"><kbd id="mod-key">Ctrl</kbd><kbd>Enter</kbd></span>
+            </div>
+            <button type="submit" class="btn" id="analyze-btn">
+              <span>Analyze Sentiment</span>
+              <span class="arrow" aria-hidden="true">&rarr;</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+        </form>
+        </div>
 
-        {% if result == 'positive' %}
-            <p class="positive">😊 Positive</p>
-        {% elif result == 'negative' %}
-            <p class="negative">😡 Negative</p>
-        {% else %}
-            <p class="neutral">😐 Neutral</p>
-        {% endif %}
-    </div>
+        <div class="scroll-cue intro" aria-hidden="true">Scroll<span></span></div>
+      </div>
+    </section>
+
+    {% if result and not error %}
+    <!-- RESULT -->
+    <section class="result" id="result" data-sentiment="{{ result|lower }}" data-confidence="{{ confidence }}" aria-labelledby="result-title">
+      <div class="wrap">
+        <article class="result-card" data-reveal>
+          <div class="result-top">
+            <div class="result-main">
+              <span class="result-label">Sentiment</span>
+              <h2 class="result-word" id="result-title">{{ result|capitalize }}</h2>
+              <p class="result-desc">
+                {% if result|lower == 'positive' %}
+                  The language leans warm and approving — appreciation, satisfaction, or delight.
+                {% elif result|lower == 'negative' %}
+                  The language signals friction — frustration, disappointment, or criticism.
+                {% else %}
+                  The language stays level — informational, balanced, or without strong emotion.
+                {% endif %}
+              </p>
+            </div>
+            <div class="result-side">
+              <div class="ring" role="img" aria-label="Confidence {{ confidence }} percent">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="ring-ticks" cx="60" cy="60" r="58"></circle>
+                  <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+                  <circle class="ring-value" id="ring-value" cx="60" cy="60" r="52"></circle>
+                </svg>
+                <div class="ring-center">
+                  <div>
+                    <div class="ring-num"><span id="conf-num">0</span><small>%</small></div>
+                    <span class="ring-cap">Confidence</span>
+                  </div>
+                </div>
+              </div>
+              <div class="conf-bar" aria-hidden="true"><i id="conf-bar"></i></div>
+            </div>
+          </div>
+          <div class="result-text">
+            <span class="result-label">Analyzed text</span>
+            <div>
+              <blockquote>{{ text }}</blockquote>
+              <div class="result-actions">
+                <a href="#analyzer" class="btn" data-focus-analyzer><span>Analyze another</span><span class="arrow" aria-hidden="true">&rarr;</span></a>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
     {% endif %}
-</div>
 
+    <!-- STATEMENT -->
+    <section class="statement" aria-labelledby="statement-title">
+      <div class="wrap">
+        <span class="eyebrow" data-reveal>The idea</span>
+        <h2 id="statement-title" class="split">
+          <span class="line">One sentence.</span>
+          <span class="line">Three possible emotions.</span>
+        </h2>
+        <p data-reveal>Every message carries a feeling. SENTI.AI reads the words, weighs the signal, and tells you which of three emotions it belongs to — with a measure of how sure it is.</p>
+      </div>
+    </section>
+
+    <!-- EMOTIONS -->
+    <section class="emotions" aria-label="The three sentiments">
+      <div class="emo-stage" id="emo-stage">
+        <article class="emo emo--pos" aria-labelledby="emo-pos">
+          <div class="emo-inner">
+            <div class="emo-meta"><span>01 / 03</span><span>Warmth</span></div>
+            <h3 class="emo-word" id="emo-pos">Positive</h3>
+            <div class="emo-visual" aria-hidden="true"></div>
+            <div class="emo-foot">
+              <p>Appreciation, delight, satisfaction. Language that lifts — and tells you what people love.</p>
+              <blockquote>&ldquo;Honestly the best purchase I&apos;ve made all year.&rdquo;<span>Example</span></blockquote>
+            </div>
+          </div>
+        </article>
+        <article class="emo emo--neg" aria-labelledby="emo-neg">
+          <div class="emo-inner">
+            <div class="emo-meta"><span>02 / 03</span><span>Friction</span></div>
+            <h3 class="emo-word" id="emo-neg">Negative</h3>
+            <div class="emo-visual" aria-hidden="true"></div>
+            <div class="emo-foot">
+              <p>Frustration, disappointment, criticism. The signal that something needs your attention.</p>
+              <blockquote>&ldquo;Waited two hours and nobody even called back.&rdquo;<span>Example</span></blockquote>
+            </div>
+          </div>
+        </article>
+        <article class="emo emo--neu" aria-labelledby="emo-neu">
+          <div class="emo-inner">
+            <div class="emo-meta"><span>03 / 03</span><span>Balance</span></div>
+            <h3 class="emo-word" id="emo-neu">Neutral</h3>
+            <div class="emo-visual" aria-hidden="true"></div>
+            <div class="emo-foot">
+              <p>Facts, questions, observations. Words that inform without leaning either way.</p>
+              <blockquote>&ldquo;The store opens at nine on weekdays.&rdquo;<span>Example</span></blockquote>
+            </div>
+          </div>
+        </article>
+        <div class="emo-dots" aria-hidden="true"><i><b></b></i><i><b></b></i><i><b></b></i></div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how" id="how" aria-labelledby="how-title">
+      <div class="how-pin" id="how-pin">
+        <div class="how-grid">
+          <div class="how-head">
+            <span class="eyebrow">How it works</span>
+            <h2 id="how-title">From words to <em>feeling.</em></h2>
+            <p>A message travels through five stages before it becomes a sentiment you can trust.</p>
+            <ol class="steps" id="steps">
+              <li class="steps-progress" id="steps-progress" aria-hidden="true"></li>
+              <li class="step is-active"><button type="button" data-step="0" aria-controls="panel-0"><span class="num">01</span><span class="name">Text</span></button></li>
+              <li class="step"><button type="button" data-step="1" aria-controls="panel-1"><span class="num">02</span><span class="name">Language features</span></button></li>
+              <li class="step"><button type="button" data-step="2" aria-controls="panel-2"><span class="num">03</span><span class="name">AI model</span></button></li>
+              <li class="step"><button type="button" data-step="3" aria-controls="panel-3"><span class="num">04</span><span class="name">Sentiment</span></button></li>
+              <li class="step"><button type="button" data-step="4" aria-controls="panel-4"><span class="num">05</span><span class="name">Confidence</span></button></li>
+            </ol>
+          </div>
+
+          <div class="stage" aria-live="polite">
+            <div class="stage-bar" aria-hidden="true"><span>Pipeline</span><span id="stage-count">01 / 05</span></div>
+
+            <div class="panel is-active" id="panel-0">
+              <span class="panel-label">Input</span>
+              <p class="panel-big">The new update is honestly brilliant<span class="caret" aria-hidden="true"></span></p>
+              <p class="panel-note">It starts with raw language. The text is cleaned — links, mentions and noise removed, repeated letters softened — so the model sees what matters.</p>
+            </div>
+
+            <div class="panel" id="panel-1">
+              <span class="panel-label">Word features &middot; TF-IDF</span>
+              <div class="chips">
+                <span class="chip">brilliant <i style="width:34px"></i></span>
+                <span class="chip">honestly <i style="width:20px"></i></span>
+                <span class="chip">new update <i style="width:14px"></i></span>
+                <span class="chip">update <i style="width:10px"></i></span>
+              </div>
+              <span class="panel-label">Character features &middot; TF-IDF</span>
+              <div class="chips">
+                <span class="chip chip--char">bri</span><span class="chip chip--char">ril</span><span class="chip chip--char">lli</span>
+                <span class="chip chip--char">ian</span><span class="chip chip--char">ant</span><span class="chip chip--char">hon</span>
+                <span class="chip chip--char">est</span><span class="chip chip--char">tly</span>
+              </div>
+              <p class="panel-note">Words capture meaning. Character patterns catch slang, typos and stretched words like &ldquo;sooo good.&rdquo; Both are combined into one signal.</p>
+            </div>
+
+            <div class="panel" id="panel-2">
+              <span class="panel-label">Trained classifier</span>
+              <div class="matrix" id="matrix" aria-hidden="true"></div>
+              <div class="probs">
+                <div class="prob"><span>Positive</span><div class="prob-track"><div class="prob-fill" style="--w:91%;background:var(--pos)"></div></div><span class="prob-val">0.91</span></div>
+                <div class="prob"><span>Neutral</span><div class="prob-track"><div class="prob-fill" style="--w:6%;background:var(--neu)"></div></div><span class="prob-val">0.06</span></div>
+                <div class="prob"><span>Negative</span><div class="prob-track"><div class="prob-fill" style="--w:3%;background:var(--neg)"></div></div><span class="prob-val">0.03</span></div>
+              </div>
+            </div>
+
+            <div class="panel" id="panel-3">
+              <span class="panel-label">Prediction</span>
+              <p class="verdict">Positive</p>
+              <p class="panel-note">The class with the strongest probability becomes the sentiment — one of exactly three.</p>
+            </div>
+
+            <div class="panel" id="panel-4">
+              <span class="panel-label">Certainty</span>
+              <div class="mini-ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="t" cx="60" cy="60" r="52"></circle><circle class="v" cx="60" cy="60" r="52"></circle></svg>
+                <div><strong>91%</strong><p class="panel-note">Confidence is the model&apos;s top probability — how strongly it believes in its answer.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="about" id="about" aria-labelledby="about-title">
+      <div class="wrap">
+        <div class="about-grid">
+          <div>
+            <span class="eyebrow" data-reveal>About</span>
+            <h2 id="about-title" data-reveal>Built to read between the lines.</h2>
+          </div>
+          <div class="about-copy" data-reveal>
+            <p>SENTI.AI is a machine-learning sentiment engine trained on real-world language. It pairs word-level and character-level understanding to stay accurate on short, messy, human text — reviews, tweets, support messages — and records every analysis so patterns emerge over time.</p>
+          </div>
+        </div>
+        <div class="specs">
+          <div class="spec" data-reveal><strong>3</strong><span>Sentiment classes — positive, negative and neutral. Nothing ambiguous.</span></div>
+          <div class="spec" data-reveal><strong>2<em>×</em></strong><span>Feature spaces. Word and character TF-IDF, combined into one signal.</span></div>
+          <div class="spec" data-reveal><strong>100<em>%</em></strong><span>Of analyses logged with their confidence, stored securely for review.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta" aria-labelledby="cta-title">
+      <div class="wrap">
+        <h2 id="cta-title" data-reveal>Ready to understand the <em>sentiment?</em></h2>
+        <a href="#analyzer" class="btn btn-lg" data-focus-analyzer data-reveal><span>Analyze a message</span><span class="arrow" aria-hidden="true">&rarr;</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>SENTI.AI &mdash; Sentiment intelligence @ Keyur Chaudhary</span>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+  <script>
+  (function () {
+    var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var hasGsap = typeof window.gsap !== "undefined" && typeof window.ScrollTrigger !== "undefined";
+    var motion = hasGsap && !reduceMotion;
+    if (motion) document.documentElement.classList.add("js-motion");
+
+    /* ---------- Nav ---------- */
+    var nav = document.getElementById("nav");
+    function onScroll() { nav.classList.toggle("is-compact", window.scrollY > 40); }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    /* ---------- Analyzer ---------- */
+    var form = document.getElementById("analyzer-form");
+    var textarea = document.getElementById("tweet");
+    var count = document.getElementById("char-count");
+    var btn = document.getElementById("analyze-btn");
+    if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) document.getElementById("mod-key").textContent = "\u2318";
+
+    textarea.addEventListener("input", function () {
+      var n = textarea.value.length;
+      count.textContent = n + (n === 1 ? " character" : " characters");
+    });
+    textarea.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        if (e.isComposing || e.keyCode === 229) return;
+        e.preventDefault();
+        if (form.reportValidity()) form.requestSubmit ? form.requestSubmit() : form.submit();
+      }
+    });
+    form.addEventListener("submit", function () { btn.classList.add("is-loading"); });
+    window.addEventListener("pageshow", function () { btn.classList.remove("is-loading"); });
+
+    document.querySelectorAll("[data-focus-analyzer]").forEach(function (link) {
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        document.getElementById("analyzer").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+        setTimeout(function () { textarea.focus({ preventScroll: true }); }, reduceMotion ? 0 : 700);
+      });
+    });
+
+    /* ---------- Result confidence ---------- */
+    var result = document.getElementById("result");
+    function animateConfidence() {
+      if (!result) return;
+      var conf = Math.max(0, Math.min(100, parseFloat(result.dataset.confidence) || 0));
+      var ring = document.getElementById("ring-value");
+      var num = document.getElementById("conf-num");
+      var bar = document.getElementById("conf-bar");
+      var C = 326.73;
+      var target = C * (1 - conf / 100);
+      if (!motion) {
+        ring.style.strokeDashoffset = target;
+        num.textContent = conf.toFixed(1);
+        bar.style.width = conf + "%";
+        return;
+      }
+      var state = { v: 0 };
+      gsap.to(ring, { strokeDashoffset: target, duration: 1.8, ease: "expo.out" });
+      gsap.to(state, { v: conf, duration: 1.8, ease: "expo.out", onUpdate: function () { num.textContent = state.v.toFixed(1); } });
+      bar.style.width = conf + "%";
+    }
+
+    /* ---------- Model matrix ---------- */
+    var matrix = document.getElementById("matrix");
+    if (matrix) {
+      var html = "";
+      for (var i = 0; i < 64; i++) html += '<i class="' + (((i * 37) % 11) < 3 ? "on" : "") + '"></i>';
+      matrix.innerHTML = html;
+    }
+
+    /* ---------- Pipeline ---------- */
+    var steps = Array.prototype.slice.call(document.querySelectorAll(".step"));
+    var panels = Array.prototype.slice.call(document.querySelectorAll(".panel"));
+    var stageCount = document.getElementById("stage-count");
+    var currentStep = 0;
+    function setStep(idx) {
+      if (idx === currentStep) return;
+      currentStep = idx;
+      steps.forEach(function (s, i) {
+        s.classList.toggle("is-active", i === idx);
+        s.classList.toggle("is-done", i < idx);
+        s.querySelector("button").setAttribute("aria-current", i === idx ? "step" : "false");
+      });
+      panels.forEach(function (p, i) { p.classList.toggle("is-active", i === idx); });
+      stageCount.textContent = "0" + (idx + 1) + " / 05";
+    }
+    var howTrigger = null;
+    steps.forEach(function (s, i) {
+      s.querySelector("button").addEventListener("click", function () {
+        if (howTrigger) {
+          var y = howTrigger.start + (howTrigger.end - howTrigger.start) * ((i + 0.5) / 5);
+          window.scrollTo({ top: y, behavior: "smooth" });
+        } else {
+          setStep(i);
+        }
+      });
+    });
+
+    if (!motion) {
+      if (result) setTimeout(function () { result.scrollIntoView({ behavior: "auto" }); animateConfidence(); }, 50);
+      return;
+    }
+
+    /* ================= GSAP ================= */
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Entrance
+    var intro = gsap.timeline({ defaults: { ease: "expo.out" } });
+    intro
+      .from(".nav", { y: -20, opacity: 0, duration: 1 })
+      .from(".hero .intro", { y: 40, opacity: 0, filter: "blur(10px)", duration: 1.4, stagger: 0.12 }, 0.1)
+      .from(".orb", { scale: 0.8, opacity: 0, duration: 2.4, ease: "power2.out" }, 0);
+
+    // Hero scroll: copy lifts & blurs, analyzer settles back
+    gsap.to(".hero-copy", {
+      y: -120, opacity: 0, filter: "blur(10px)", ease: "none",
+      scrollTrigger: { trigger: ".hero", start: "top top", end: "70% top", scrub: true }
+    });
+    gsap.to(".analyzer", {
+      scale: 0.92, y: -40, opacity: 0.25, ease: "none",
+      scrollTrigger: { trigger: ".hero", start: "25% top", end: "bottom top", scrub: true }
+    });
+    gsap.to(".orb", {
+      yPercent: 30, scale: 1.15, ease: "none",
+      scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true }
+    });
+
+    // Generic reveals
+    ScrollTrigger.batch("[data-reveal]", {
+      start: "top 88%",
+      once: true,
+      onEnter: function (els) { gsap.to(els, { opacity: 1, y: 0, duration: 1.2, ease: "expo.out", stagger: 0.08 }); }
+    });
+
+    // Result
+    if (result) {
+      ScrollTrigger.create({ trigger: result, start: "top 75%", once: true, onEnter: animateConfidence });
+      setTimeout(function () { result.scrollIntoView({ behavior: "smooth" }); }, 900);
+    }
+
+    // Statement: word-by-word scrub
+    var split = document.querySelector(".statement .split");
+    split.querySelectorAll(".line").forEach(function (line) {
+      line.innerHTML = line.textContent.split(" ").map(function (w) { return '<span class="word">' + w + "</span>"; }).join(" ");
+    });
+    gsap.fromTo(".statement .word",
+      { opacity: 0.1, y: 24, filter: "blur(6px)" },
+      { opacity: 1, y: 0, filter: "blur(0px)", stagger: 0.15, ease: "none",
+        scrollTrigger: { trigger: ".statement", start: "top 75%", end: "center 45%", scrub: true } }
+    );
+
+    // Emotions: pinned three-act sequence
+    var emos = gsap.utils.toArray(".emo");
+    var dots = gsap.utils.toArray(".emo-dots b");
+    var glows = ["rgba(143, 227, 176, 0.16)", "rgba(255, 122, 107, 0.15)", "rgba(185, 194, 207, 0.12)"];
+    gsap.set(emos.slice(1), { opacity: 0 });
+    var emoTl = gsap.timeline({
+      defaults: { ease: "power2.inOut" },
+      scrollTrigger: {
+        trigger: "#emo-stage", start: "top top", end: "+=300%", pin: true, scrub: 0.8, anticipatePin: 1,
+        onUpdate: function (self) {
+          var p = self.progress * 3;
+          dots.forEach(function (d, i) { gsap.set(d, { scaleX: Math.max(0, Math.min(1, p - i)) }); });
+        }
+      }
+    });
+    var emoEntry = gsap.timeline({
+      defaults: { ease: "power2.out" },
+      scrollTrigger: { trigger: "#emo-stage", start: "top 85%", end: "top top", scrub: 0.6 }
+    });
+    emos.forEach(function (emo, i) {
+      var word = emo.querySelector(".emo-word");
+      var visual = emo.querySelector(".emo-visual");
+      var foot = emo.querySelectorAll(".emo-foot > *, .emo-meta");
+      var tl = i === 0 ? emoEntry : emoTl;
+      if (i > 0) {
+        emoTl.fromTo(emo, { opacity: 0 }, { opacity: 1, duration: 0.3 }, ">-0.2");
+        emoTl.to("#emo-stage", { "--glow": glows[i], duration: 0.6 }, "<");
+      }
+      var from, to = { opacity: 1, filter: "blur(0px)", duration: 1 };
+      if (i === 0) { from = { yPercent: 40, opacity: 0, filter: "blur(16px)" }; to.yPercent = 0; }
+      else if (i === 1) { from = { scale: 1.25, opacity: 0, filter: "blur(16px)" }; to.scale = 1; }
+      else { from = { letterSpacing: "0.3em", opacity: 0, filter: "blur(16px)" }; to.letterSpacing = "0.02em"; }
+      tl.fromTo(word, from, to, i === 0 ? 0 : "<");
+      tl.fromTo(visual, { scaleX: 0 }, { scaleX: 1, duration: 0.8 }, "<0.2");
+      tl.fromTo(foot, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, stagger: 0.08 }, "<0.2");
+      emoTl.to({}, { duration: 0.6 });
+      if (i < emos.length - 1) {
+        emoTl.to(word, { opacity: 0, scale: 0.94, filter: "blur(14px)", duration: 0.7 });
+        emoTl.to(foot, { opacity: 0, y: -20, duration: 0.5 }, "<");
+        emoTl.to(visual, { scaleX: 0, duration: 0.5 }, "<");
+        emoTl.to(emo, { opacity: 0, duration: 0.3 }, ">-0.1");
+      }
+    });
+
+    // Pipeline: pinned, scrubbed step progression
+    howTrigger = ScrollTrigger.create({
+      trigger: "#how-pin", start: "top top", end: "+=250%", pin: true, scrub: true,
+      onUpdate: function (self) {
+        setStep(Math.min(4, Math.floor(self.progress * 5)));
+        gsap.set("#steps-progress", { scaleY: self.progress });
+      }
+    });
+    gsap.from(".how-head > *, .stage", {
+      y: 40, opacity: 0, duration: 1.2, ease: "expo.out", stagger: 0.08,
+      scrollTrigger: { trigger: "#how", start: "top 75%", once: true }
+    });
+
+    // Subtle parallax on about specs and CTA glow
+    gsap.utils.toArray(".spec strong").forEach(function (el, i) {
+      gsap.fromTo(el, { y: 40 + i * 20 }, { y: 0, ease: "none", scrollTrigger: { trigger: ".specs", start: "top bottom", end: "bottom 60%", scrub: true } });
+    });
+    gsap.fromTo(".cta h2", { scale: 0.92 }, { scale: 1, ease: "none", scrollTrigger: { trigger: ".cta", start: "top bottom", end: "center center", scrub: true } });
+
+    window.addEventListener("load", function () { ScrollTrigger.refresh(); });
+  })();
+  </script>
 </body>
 </html>

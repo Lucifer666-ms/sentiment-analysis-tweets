@@ -1,50 +1,402 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Panel</title>
-    <style>
-        body {
-            font-family: Arial;
-            background: #1e1e2f;
-            color: white;
-            text-align: center;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08080a">
+  <meta name="robots" content="noindex">
+  <title>Dashboard — SENTI.AI</title>
 
-        table {
-            margin: 40px auto;
-            border-collapse: collapse;
-            width: 80%;
-        }
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 
-        th, td {
-            padding: 10px;
-            border: 1px solid #444;
-        }
+  {% set ns = namespace(pos=0, neg=0, neu=0, conf_sum=0, conf_n=0) %}
+  {% for row in data %}
+    {% set s = (row[2] or '')|lower %}
+    {% if s == 'positive' %}{% set ns.pos = ns.pos + 1 %}
+    {% elif s == 'negative' %}{% set ns.neg = ns.neg + 1 %}
+    {% else %}{% set ns.neu = ns.neu + 1 %}{% endif %}
+    {% if row[3] is not none %}
+      {% set ns.conf_sum = ns.conf_sum + row[3] %}
+      {% set ns.conf_n = ns.conf_n + 1 %}
+    {% endif %}
+  {% endfor %}
+  {% set total = data|length %}
+  {% set pos_pct = (ns.pos / total * 100) if total else 0 %}
+  {% set neg_pct = (ns.neg / total * 100) if total else 0 %}
+  {% set neu_pct = (ns.neu / total * 100) if total else 0 %}
+  {% set avg_conf = (ns.conf_sum / ns.conf_n) if ns.conf_n else 0 %}
 
-        th {
-            background: #333;
-        }
+  <style>
+    :root {
+      --bg: #08080a;
+      --panel: rgba(255, 255, 255, 0.025);
+      --fg: #f3f2ee;
+      --muted: #8b8b94;
+      --dim: #55555d;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-2: rgba(255, 255, 255, 0.14);
+      --pos: #8fe3b0;
+      --neg: #ff7a6b;
+      --neu: #b9c2cf;
+      --sans: "Inter Tight", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      --serif: "Instrument Serif", ui-serif, Georgia, serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --wrap: min(1240px, calc(100vw - 40px));
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.5;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+    body::before {
+      content: ""; position: fixed; inset: -20% -10% auto; height: 70vh; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(ellipse 40% 60% at 25% 30%, rgba(143,227,176,0.07), transparent 70%),
+        radial-gradient(ellipse 40% 60% at 75% 30%, rgba(255,122,107,0.06), transparent 70%);
+    }
+    ::selection { background: var(--fg); color: var(--bg); }
+    a { color: inherit; text-decoration: none; }
+    button, input { font: inherit; color: inherit; }
+    em { font-family: var(--serif); font-style: italic; font-weight: 400; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .wrap { width: var(--wrap); margin: 0 auto; }
 
-        tr:hover {
-            background: #555;
-        }
-    </style>
+    /* Nav */
+    .nav { position: sticky; top: 0; z-index: 20; background: rgba(8,8,10,0.7); backdrop-filter: saturate(160%) blur(18px); -webkit-backdrop-filter: saturate(160%) blur(18px); border-bottom: 1px solid var(--line); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 16px; }
+    .brand { font-weight: 600; letter-spacing: 0.14em; font-size: 14px; display: inline-flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 9px; height: 9px; border-radius: 50%; background: conic-gradient(var(--pos), var(--neu), var(--neg), var(--pos)); }
+    .brand small { font-weight: 400; letter-spacing: 0.04em; color: var(--dim); margin-left: 6px; }
+    .nav-actions { display: flex; align-items: center; gap: 8px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; font-size: 13px; cursor: pointer;
+      border: 1px solid var(--line-2); background: transparent; transition: background-color 0.3s var(--ease), color 0.3s var(--ease);
+    }
+    .btn:hover { background: rgba(255,255,255,0.06); }
+    .btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+    .btn-solid { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+    .btn-solid:hover { background: #fff; }
+
+    /* Header */
+    .head { padding: 56px 0 36px; display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+    .eyebrow::before { content: ""; width: 18px; height: 1px; background: currentColor; opacity: 0.6; }
+    .head h1 { margin: 14px 0 0; font-weight: 500; font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: -0.045em; }
+    .head-meta { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+    .head-meta .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pos); box-shadow: 0 0 0 4px rgba(143,227,176,0.12); }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: 1.3fr repeat(3, 1fr) 1.15fr; border: 1px solid var(--line-2); border-radius: 22px; overflow: hidden; background: var(--panel); }
+    .stat { padding: 26px 26px 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; position: relative; }
+    .stat + .stat { border-left: 1px solid var(--line); }
+    .stat-label { display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .stat-label i { width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--fg)); }
+    .stat-value { font-size: clamp(36px, 3.6vw, 52px); font-weight: 500; letter-spacing: -0.05em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .stat-value small { font-size: 0.42em; color: var(--muted); letter-spacing: 0; margin-left: 3px; }
+    .stat-sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .stat--total .stat-value { font-size: clamp(48px, 5vw, 76px); }
+    .stat--pos { --c: var(--pos); } .stat--neg { --c: var(--neg); } .stat--neu { --c: var(--neu); }
+    .stat--pos .stat-value { color: var(--pos); } .stat--neg .stat-value { color: var(--neg); } .stat--neu .stat-value { color: var(--neu); }
+    .stat-track { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: auto; }
+    .stat-track b { display: block; height: 100%; width: 0; background: var(--c, var(--fg)); transition: width 1.4s var(--ease); }
+    .gauge { display: flex; align-items: center; gap: 16px; }
+    .gauge svg { width: 64px; height: 64px; transform: rotate(-90deg); flex-shrink: 0; }
+    .gauge circle { fill: none; stroke-width: 4; }
+    .gauge .t { stroke: var(--line-2); }
+    .gauge .v { stroke: var(--fg); stroke-linecap: round; stroke-dasharray: 150.8; stroke-dashoffset: 150.8; transition: stroke-dashoffset 1.6s var(--ease); }
+
+    @media (max-width: 1080px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .stat--total { grid-column: 1 / -1; }
+      .stat + .stat { border-left: 0; }
+      .stat { border-top: 1px solid var(--line); }
+      .stat--total { border-top: 0; }
+      .stat:nth-child(odd):not(.stat--total) { border-left: 1px solid var(--line); }
+      .stat--conf { grid-column: 1 / -1; border-left: 0 !important; }
+    }
+
+    /* Distribution */
+    .dist { margin-top: 20px; border: 1px solid var(--line-2); border-radius: 22px; padding: 24px 26px; background: var(--panel); }
+    .dist-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+    .dist-head h2 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
+    .legend { display: flex; gap: 18px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+    .legend span { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+    .legend i { width: 8px; height: 8px; border-radius: 2px; }
+    .dist-bar { display: flex; gap: 4px; height: 44px; }
+    .dist-bar span { display: block; height: 100%; border-radius: 6px; width: 0; transition: width 1.4s var(--ease); min-width: 0; }
+    .dist-empty { height: 44px; border-radius: 6px; border: 1px dashed var(--line-2); display: grid; place-items: center; color: var(--dim); font-size: 13px; }
+
+    /* Table */
+    .records { margin: 20px 0 64px; border: 1px solid var(--line-2); border-radius: 22px; overflow: hidden; background: var(--panel); }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; padding: 18px 20px 18px 26px; border-bottom: 1px solid var(--line); }
+    .toolbar h2 { margin: 0; font-size: 15px; font-weight: 500; }
+    .toolbar h2 span { color: var(--dim); font-weight: 400; margin-left: 6px; font-variant-numeric: tabular-nums; }
+    .tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filters { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; }
+    .filters button {
+      border: 0; background: transparent; padding: 6px 12px; border-radius: 999px; font-size: 12.5px; color: var(--muted); cursor: pointer;
+      transition: background-color 0.3s var(--ease), color 0.3s var(--ease);
+    }
+    .filters button:hover { color: var(--fg); }
+    .filters button[aria-pressed="true"] { background: rgba(255,255,255,0.09); color: var(--fg); }
+    .filters button:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+    .search { position: relative; }
+    .search input {
+      width: 220px; padding: 8px 14px 8px 34px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,0.02); font-size: 13px; outline: none;
+      transition: border-color 0.3s var(--ease);
+    }
+    .search input::placeholder { color: var(--dim); }
+    .search input:focus { border-color: var(--line-2); }
+    .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--dim); }
+
+    .table-wrap { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    thead th {
+      position: sticky; top: 0; z-index: 1; background: #0d0d10; text-align: left; font-size: 11.5px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim);
+      padding: 14px 20px; border-bottom: 1px solid var(--line);
+    }
+    tbody td { padding: 16px 20px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    tbody tr { transition: background-color 0.25s var(--ease); }
+    tbody tr:hover { background: rgba(255,255,255,0.025); }
+    tbody tr:last-child td { border-bottom: 0; }
+    .col-id { width: 84px; color: var(--dim); font-variant-numeric: tabular-nums; font-size: 13px; }
+    .col-text { max-width: 0; width: 60%; }
+    .col-text p { margin: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; color: var(--fg); }
+    .col-sent { width: 150px; }
+    .col-conf { width: 200px; }
+    th.col-id, th.col-sent, th.col-conf { padding-left: 20px; }
+
+    .badge {
+      --c: var(--neu);
+      display: inline-flex; align-items: center; gap: 8px; padding: 5px 11px 5px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 500;
+      color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); background: color-mix(in srgb, var(--c) 9%, transparent);
+    }
+    .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--c); }
+    .badge--positive { --c: var(--pos); }
+    .badge--negative { --c: var(--neg); }
+    .conf { display: flex; align-items: center; gap: 12px; }
+    .conf-track { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.07); overflow: hidden; max-width: 110px; }
+    .conf-track b { display: block; height: 100%; border-radius: 4px; background: var(--c, var(--fg)); }
+    .conf span { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 52px; text-align: right; }
+    .conf--na { color: var(--dim); font-size: 13px; }
+    tr[data-sentiment="positive"] { --c: var(--pos); }
+    tr[data-sentiment="negative"] { --c: var(--neg); }
+    tr[data-sentiment="neutral"] { --c: var(--neu); }
+
+    .empty { padding: 72px 24px; text-align: center; color: var(--muted); }
+    .empty strong { display: block; font-size: 22px; font-weight: 500; color: var(--fg); letter-spacing: -0.02em; margin-bottom: 8px; }
+    .no-match { display: none; padding: 40px 24px; text-align: center; color: var(--muted); font-size: 14px; }
+
+    .footer { border-top: 1px solid var(--line); padding: 24px 0 32px; font-size: 13px; color: var(--dim); }
+
+    .js-motion [data-in] { opacity: 0; transform: translateY(16px); }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
+    }
+    @media (max-width: 640px) {
+      .search input { width: 100%; }
+      .search, .tools { width: 100%; }
+    }
+  </style>
 </head>
+
 <body>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a href="/" class="brand" aria-label="SENTI.AI home"><span class="brand-mark" aria-hidden="true"></span>SENTI.AI<small>Dashboard</small></a>
+      <nav class="nav-actions" aria-label="Dashboard">
+        <a href="/admin" class="btn" aria-label="Refresh data">Refresh</a>
+        <a href="/#analyzer" class="btn btn-solid">New analysis</a>
+      </nav>
+    </div>
+  </header>
 
-<h2>📊 Admin Panel</h2>
+  <main class="wrap">
+    <section class="head" data-in>
+      <div>
+        <span class="eyebrow">Analytics</span>
+        <h1>Sentiment <em>overview</em></h1>
+      </div>
+      <div class="head-meta"><span class="dot" aria-hidden="true"></span>{{ total }} {{ 'analysis' if total == 1 else 'analyses' }} recorded</div>
+    </section>
 
-<table>
-<tr><th>Tweet</th><th>Sentiment</th></tr>
+    <section class="stats" aria-label="Summary statistics" data-in>
+      <div class="stat stat--total">
+        <span class="stat-label">Total analyses</span>
+        <span class="stat-value" data-count="{{ total }}">{{ total }}</span>
+        <span class="stat-sub">All messages processed by the model</span>
+      </div>
+      <div class="stat stat--pos">
+        <span class="stat-label"><i aria-hidden="true"></i>Positive</span>
+        <span class="stat-value" data-count="{{ ns.pos }}">{{ ns.pos }}</span>
+        <span class="stat-sub">{{ '%.1f'|format(pos_pct) }}% of total</span>
+        <div class="stat-track" aria-hidden="true"><b data-width="{{ '%.2f'|format(pos_pct) }}"></b></div>
+      </div>
+      <div class="stat stat--neg">
+        <span class="stat-label"><i aria-hidden="true"></i>Negative</span>
+        <span class="stat-value" data-count="{{ ns.neg }}">{{ ns.neg }}</span>
+        <span class="stat-sub">{{ '%.1f'|format(neg_pct) }}% of total</span>
+        <div class="stat-track" aria-hidden="true"><b data-width="{{ '%.2f'|format(neg_pct) }}"></b></div>
+      </div>
+      <div class="stat stat--neu">
+        <span class="stat-label"><i aria-hidden="true"></i>Neutral</span>
+        <span class="stat-value" data-count="{{ ns.neu }}">{{ ns.neu }}</span>
+        <span class="stat-sub">{{ '%.1f'|format(neu_pct) }}% of total</span>
+        <div class="stat-track" aria-hidden="true"><b data-width="{{ '%.2f'|format(neu_pct) }}"></b></div>
+      </div>
+      <div class="stat stat--conf">
+        <span class="stat-label">Avg. confidence</span>
+        <div class="gauge">
+          <svg viewBox="0 0 60 60" aria-hidden="true"><circle class="t" cx="30" cy="30" r="24"></circle><circle class="v" id="gauge" cx="30" cy="30" r="24" data-value="{{ '%.2f'|format(avg_conf) }}"></circle></svg>
+          <span class="stat-value" data-count="{{ '%.1f'|format(avg_conf) }}" data-decimals="1">{{ '%.1f'|format(avg_conf) }}<small>%</small></span>
+        </div>
+        <span class="stat-sub">Across {{ ns.conf_n }} scored {{ 'record' if ns.conf_n == 1 else 'records' }}</span>
+      </div>
+    </section>
 
-{% for row in data %}
-<tr>
-<td>{{ row[0] }}</td>
-<td>{{ row[1] }}</td>
-</tr>
-{% endfor %}
+    <section class="dist" aria-labelledby="dist-title" data-in>
+      <div class="dist-head">
+        <h2 id="dist-title">Distribution</h2>
+        <div class="legend">
+          <span><i style="background:var(--pos)" aria-hidden="true"></i>Positive {{ '%.1f'|format(pos_pct) }}%</span>
+          <span><i style="background:var(--neu)" aria-hidden="true"></i>Neutral {{ '%.1f'|format(neu_pct) }}%</span>
+          <span><i style="background:var(--neg)" aria-hidden="true"></i>Negative {{ '%.1f'|format(neg_pct) }}%</span>
+        </div>
+      </div>
+      {% if total %}
+      <div class="dist-bar" role="img" aria-label="Positive {{ '%.1f'|format(pos_pct) }} percent, neutral {{ '%.1f'|format(neu_pct) }} percent, negative {{ '%.1f'|format(neg_pct) }} percent">
+        {% if ns.pos %}<span style="background:var(--pos)" data-width="{{ '%.2f'|format(pos_pct) }}"></span>{% endif %}
+        {% if ns.neu %}<span style="background:var(--neu)" data-width="{{ '%.2f'|format(neu_pct) }}"></span>{% endif %}
+        {% if ns.neg %}<span style="background:var(--neg)" data-width="{{ '%.2f'|format(neg_pct) }}"></span>{% endif %}
+      </div>
+      {% else %}
+      <div class="dist-empty">No data yet</div>
+      {% endif %}
+    </section>
 
-</table>
+    <section class="records" aria-labelledby="records-title" data-in>
+      <div class="toolbar">
+        <h2 id="records-title">Recent analyses<span id="visible-count">{{ total }}</span></h2>
+        {% if total %}
+        <div class="tools">
+          <div class="filters" role="group" aria-label="Filter by sentiment">
+            <button type="button" data-filter="all" aria-pressed="true">All</button>
+            <button type="button" data-filter="positive" aria-pressed="false">Positive</button>
+            <button type="button" data-filter="negative" aria-pressed="false">Negative</button>
+            <button type="button" data-filter="neutral" aria-pressed="false">Neutral</button>
+          </div>
+          <label class="search">
+            <span class="sr-only">Search text</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+            <input type="search" id="search" placeholder="Search text..." autocomplete="off">
+          </label>
+        </div>
+        {% endif %}
+      </div>
 
+      {% if total %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col" class="col-id">ID</th>
+              <th scope="col" class="col-text">Text</th>
+              <th scope="col" class="col-sent">Sentiment</th>
+              <th scope="col" class="col-conf">Confidence</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            {% for row in data %}
+            {% set s = (row[2] or 'neutral')|lower %}
+            <tr data-sentiment="{{ s }}">
+              <td class="col-id">#{{ row[0] }}</td>
+              <td class="col-text"><p title="{{ row[1] }}">{{ row[1] }}</p></td>
+              <td class="col-sent"><span class="badge badge--{{ s }}">{{ s|capitalize }}</span></td>
+              <td class="col-conf">
+                {% if row[3] is not none %}
+                <div class="conf">
+                  <div class="conf-track" aria-hidden="true"><b style="width: {{ [[row[3], 0]|max, 100]|min }}%"></b></div>
+                  <span>{{ '%.1f'|format(row[3]) }}%</span>
+                </div>
+                {% else %}
+                <span class="conf--na">&mdash;</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="no-match" id="no-match">No analyses match your filters.</p>
+      </div>
+      {% else %}
+      <div class="empty">
+        <strong>No analyses yet</strong>
+        Run your first message through the analyzer to see it here.
+        <div style="margin-top:20px"><a href="/#analyzer" class="btn btn-solid">Analyze a message</a></div>
+      </div>
+      {% endif %}
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">SENTI.AI &mdash; Admin dashboard</div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script>
+  (function () {
+    var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var motion = typeof window.gsap !== "undefined" && !reduceMotion;
+    if (motion) document.documentElement.classList.add("js-motion");
+
+    function fillBars() {
+      document.querySelectorAll("[data-width]").forEach(function (el) { el.style.width = el.dataset.width + "%"; });
+      var g = document.getElementById("gauge");
+      if (g) g.style.strokeDashoffset = 150.8 * (1 - Math.min(100, parseFloat(g.dataset.value) || 0) / 100);
+    }
+
+    if (motion) {
+      gsap.to("[data-in]", { opacity: 1, y: 0, duration: 1, ease: "expo.out", stagger: 0.08, onStart: function () { setTimeout(fillBars, 200); } });
+      document.querySelectorAll("[data-count]").forEach(function (el) {
+        var target = parseFloat(el.dataset.count) || 0;
+        var dec = parseInt(el.dataset.decimals || "0", 10);
+        var suffix = el.querySelector("small") ? el.querySelector("small").outerHTML : "";
+        var state = { v: 0 };
+        gsap.to(state, { v: target, duration: 1.6, ease: "expo.out", delay: 0.2, onUpdate: function () { el.innerHTML = state.v.toFixed(dec) + suffix; } });
+      });
+    } else {
+      fillBars();
+    }
+
+    var rows = Array.prototype.slice.call(document.querySelectorAll("#rows tr"));
+    var search = document.getElementById("search");
+    var buttons = document.querySelectorAll("[data-filter]");
+    var visibleCount = document.getElementById("visible-count");
+    var noMatch = document.getElementById("no-match");
+    var activeFilter = "all";
+
+    function apply() {
+      var q = search ? search.value.trim().toLowerCase() : "";
+      var shown = 0;
+      rows.forEach(function (r) {
+        var ok = (activeFilter === "all" || r.dataset.sentiment === activeFilter) && (!q || r.textContent.toLowerCase().indexOf(q) !== -1);
+        r.hidden = !ok;
+        if (ok) shown++;
+      });
+      if (visibleCount) visibleCount.textContent = shown;
+      if (noMatch) noMatch.style.display = shown ? "none" : "block";
+    }
+    buttons.forEach(function (b) {
+      b.addEventListener("click", function () {
+        activeFilter = b.dataset.filter;
+        buttons.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+        apply();
+      });
+    });
+    if (search) search.addEventListener("input", apply);
+  })();
+  </script>
 </body>
 </html>
