@@ -1,0 +1,98 @@
+text,sentiment
+I love this app,positive
+This is amazing,positive
+Absolutely fantastic experience,positive
+Very good product,positive
+I really like this,positive
+This app is awesome,positive
+Best service ever,positive
+So good and smooth,positive
+Loved it so much,positive
+Great job developers,positive
+This is fucking amazing,positive
+Really great app,positive
+Superb experience,positive
+Excellent performance,positive
+Highly recommend this,positive
+Brilliant app,positive
+Works perfectly,positive
+Very useful application,positive
+Nice features and smooth UI,positive
+Fast and reliable,positive
+
+This is bad,negative
+Worst app ever,negative
+I hate this,negative
+Very poor performance,negative
+Terrible experience,negative
+This is fucking worst,negative
+Completely useless app,negative
+So slow and buggy,negative
+Not working properly,negative
+Waste of time,negative
+Horrible design,negative
+Very frustrating to use,negative
+Keeps crashing,negative
+Pathetic service,negative
+Extremely disappointing,negative
+Worst experience ever,negative
+So many bugs,negative
+Very annoying app,negative
+Does not work at all,negative
+Totally useless,negative
+
+It is okay,neutral
+Average experience,neutral
+Nothing special,neutral
+Not bad,neutral
+Could be better,neutral
+It works fine,neutral
+Just normal app,neutral
+Okayish performance,neutral
+No issues so far,neutral
+Mediocre experience,neutral
+Fair enough,neutral
+Decent app,neutral
+Moderate performance,neutral
+Neither good nor bad,neutral
+Just okay,neutral
+Works as expected,neutral
+Normal usage experience,neutral
+Average quality,neutral
+Fine but nothing great,neutral
+Acceptable performance,neutral
+
+Good app but has some issues,neutral
+Great app but crashes sometimes,neutral
+Nice design but slow performance,neutral
+Works well but has bugs,neutral
+Amazing features but needs improvement,neutral
+Good but not perfect,neutral
+Bad app but useful sometimes,neutral
+Not good but manageable,neutral
+I like it but has problems,neutral
+Very good but needs updates,neutral
+Excellent but a bit slow,neutral
+Great but confusing UI,neutral
+Nice but not stable,neutral
+Useful but buggy,neutral
+Good experience but can improve,neutral
+
+This app is fucking good,positive
+Really fucking amazing app,positive
+This is damn good,positive
+So fucking smooth and fast,positive
+Crazy good performance,positive
+
+This app is fucking worst,negative
+Really fucking bad experience,negative
+This is damn terrible,negative
+So fucking slow,negative
+Crazy bad performance,negative
+
+I love this app but it has bugs,neutral
+This is good but having problem in some functions,neutral
+App is great but sometimes crashes,neutral
+Very nice but not working properly sometimes,neutral
+Good interface but poor backend,neutral
+Amazing app but needs bug fixes,neutral
