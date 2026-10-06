@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #1e1e2f;
+            color: white;
+            text-align: center;
+        }
+
+        table {
+            margin: 40px auto;
+            border-collapse: collapse;
+            width: 80%;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #444;
+        }
+
+        th {
+            background: #333;
+        }
+
+        tr:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+<h2>📊 Admin Panel</h2>
+
+<table>
+<tr><th>Tweet</th><th>Sentiment</th></tr>
+
+{% for row in data %}
+<tr>
+<td>{{ row[0] }}</td>
+<td>{{ row[1] }}</td>
+</tr>
+{% endfor %}
+
+</table>
+
+</body>
+</html>
